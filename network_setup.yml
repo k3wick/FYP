@@ -1,0 +1,8 @@
+# Ansible Playbook Example: network_setup.yml
+---
+- name: Configure Network Settings
+  hosts: all
+  become: yes
+  tasks:
+    - name: Assign static IP
+      # Example task to set up network interfaces
