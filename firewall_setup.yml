@@ -1,0 +1,13 @@
+# Ansible Playbook Example: firewall_setup.yml
+---
+- name: Setup Firewall Rules
+  hosts: all
+  become: true
+  tasks:
+    - name: Install iptables
+      apt:
+        name: iptables
+        state: present
+
+    - name: Add firewall rules
+      # Example task to add firewall rules
