@@ -1,8 +1,13 @@
-# Ansible Playbook Example: network_setup.yml
 ---
 - name: Configure Network Settings
   hosts: all
-  become: yes
+  become: true
   tasks:
     - name: Assign static IP
-      # Example task to set up network interfaces
+      community.general.nmcli:
+        conn_name: 'eth0'
+        ifname: 'eth0'
+        type: 'ethernet'
+        ip4: '192.168.56.101/24'
+        gw4: '192.168.56.1'
+        state: 'present'
