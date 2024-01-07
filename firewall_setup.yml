@@ -1,13 +1,16 @@
-# Ansible Playbook Example: firewall_setup.yml
 ---
-- name: Setup Firewall Rules
+- name: Basic Firewall Setup on VMs
   hosts: all
   become: true
   tasks:
-    - name: Install iptables
+    - name: Ensure UFW is installed (Uncomplicated Firewall)
       apt:
-        name: iptables
+        name: ufw
         state: present
 
-    - name: Add firewall rules
-      # Example task to add firewall rules
+    - name: Allow SSH through the firewall
+      ufw:
+        rule: allow
+        name: OpenSSH
+
+    # Add more rules as per your network security plan
