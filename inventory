@@ -1,3 +1,11 @@
-[vms]
-vm1 ansible_host=192.168.56.101 ansible_port=22 ansible_user=vagrant ansible_ssh_private_key_file=~/private_key_vm1
-vm2 ansible_host=192.168.56.102 ansible_port=22 ansible_user=vagrant ansible_ssh_private_key_file=~/private_key_vm2
+[combined_web_firewall]
+web-firewall-vm ansible_host=192.168.56.101 ansible_port=22 ansible_user=vagrant ansible_ssh_private_key_file=/ansible/private_key_web_firewall
+
+[database_server]
+db-server-vm ansible_host=192.168.56.102 ansible_port=22 ansible_user=vagrant ansible_ssh_private_key_file=/ansible/private_key_db
+
+[combined_zabbix_ansible]
+zabbix-ansible-vm ansible_host=192.168.56.103 ansible_port=22 ansible_user=vagrant ansible_ssh_private_key_file=/ansible/private_key_zabbix_ansible
+
+[all:vars]
+ansible_user=vagrant

@@ -1,11 +1,26 @@
 ---
-- name: Network Configuration for VMs
-  hosts: all
-  become: true
+- name: Configure Database Server
+  hosts: database_server
+  become: yes
   tasks:
-    - name: Install net-tools for network management
-      apt:
-        name: net-tools
+    - name: Install MySQL
+      apt: name=mysql-server state=latest
+
+    - name: Start MySQL service
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    # Configure database and user (example)
+    - name: Ensure the database is present
+      mysql_db:
+        name: mydatabase
         state: present
 
-    # Additional tasks for configuring network (e.g., setting up interfaces)
+    - name: Ensure user has access to the database
+      mysql_user:
+        name: myuser
+        password: mypassword
+        priv: '*.*:ALL,GRANT'
+        state: present

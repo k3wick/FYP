@@ -1,0 +1,24 @@
+---
+- name: Install Zabbix Server and Ansible
+  hosts: combined_zabbix_ansible
+  become: yes
+  tasks:
+    - name: Install Zabbix server and web frontend
+      apt: name="{{ item }}" state=latest
+      loop:
+        - zabbix-server-mysql
+        - zabbix-frontend-php
+        - zabbix-apache-conf
+        - zabbix-agent
+
+    - name: Install Ansible
+      apt: name=ansible state=latest
+
+    - name: Start Zabbix server and agent
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - zabbix-server
+        - zabbix-agent
