@@ -2,21 +2,59 @@
 - name: Install Zabbix Server and Ansible
   hosts: combined_zabbix_ansible
   become: yes
+  vars:
+    db_name: zabbix
+    db_user: zabbix
+    db_password: zabbix_pass
+    php_timezone: "America/New_York"
   tasks:
-    - name: Install Zabbix server, frontend, and agent
-      apt: 
+    - name: Install necessary packages for Zabbix
+      apt:
         name: "{{ item }}"
-        state: latest
+        state: present
+        update_cache: yes
       loop:
+        - mariadb-server
+        - mariadb-client
         - zabbix-server-mysql
         - zabbix-frontend-php
         - zabbix-apache-conf
         - zabbix-agent
+        - git
+        - ansible
 
-    - name: Install Ansible
-      apt: 
-        name: ansible
-        state: latest
+    - name: Start and enable MariaDB
+      service:
+        name: mariadb
+        state: started
+        enabled: true
+
+    - name: Create Zabbix database and user
+      mysql_db:
+        name: "{{ db_name }}"
+        state: present
+      mysql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        priv: "{{ db_name }}.*:ALL"
+        state: present
+
+    - name: Import initial schema and data
+      shell: |
+        zcat /usr/share/doc/zabbix-server-mysql*/create.sql.gz | mysql -u{{ db_user }} -p{{ db_password }} {{ db_name }}
+      args:
+        creates: /etc/zabbix/zabbix_server.conf
+
+    - name: Configure Zabbix server with database
+      lineinfile:
+        path: /etc/zabbix/zabbix_server.conf
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      with_items:
+        - { regexp: '^# DBHost=localhost', line: 'DBHost=localhost' }
+        - { regexp: '^# DBName=zabbix', line: 'DBName={{ db_name }}' }
+        - { regexp: '^# DBUser=zabbix', line: 'DBUser={{ db_user }}' }
+        - { regexp: '^# DBPassword=', line: 'DBPassword={{ db_password }}' }
 
     - name: Ensure Zabbix server and agent are running
       service:
@@ -26,3 +64,16 @@
       loop:
         - zabbix-server
         - zabbix-agent
+
+    - name: Configure PHP for Zabbix
+      lineinfile:
+        path: /etc/zabbix/apache.conf
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      with_items:
+        - { regexp: '^# php_value date.timezone Europe/Riga', line: 'php_value date.timezone {{ php_timezone }}' }
+
+    - name: Restart Apache to apply PHP configuration
+      service:
+        name: apache2
+        state: restarted
