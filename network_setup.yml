@@ -1,26 +1,15 @@
 ---
-- name: Configure Database Server
-  hosts: database_server
+- name: Configure Network Settings on VMs
+  hosts: network_configurations
   become: yes
   tasks:
-    - name: Install MySQL
-      apt: name=mysql-server state=latest
+    - name: Set hostname
+      hostname:
+        name: "{{ inventory_hostname }}"
 
-    - name: Start MySQL service
-      service:
-        name: mysql
-        state: started
-        enabled: yes
-
-    # Configure database and user (example)
-    - name: Ensure the database is present
-      mysql_db:
-        name: mydatabase
+    - name: Update /etc/hosts for hostname resolution
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[item].ansible_host }} {{ item }}"
         state: present
-
-    - name: Ensure user has access to the database
-      mysql_user:
-        name: myuser
-        password: mypassword
-        priv: '*.*:ALL,GRANT'
-        state: present
+      loop: "{{ groups['all_vms'] }}"
