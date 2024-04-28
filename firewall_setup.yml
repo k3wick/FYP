@@ -1,24 +1,30 @@
 ---
-- name: Configure Web Server and Firewall
-  hosts: combined_web_firewall
-  become: yes
-  tasks:
-    - name: Install and configure UFW
-      apt: name=ufw state=present
-    - name: Allow SSH and HTTP/HTTPS through UFW
-      ufw:
-        rule: allow
-        port: "{{ item }}"
-      loop: [22, 80, 443]
+- name: Configure Web Server and Firewall       # Name of the playbook.
+  hosts: combined_web_firewall                  # Specifies the group of hosts the playbook targets.
+  become: yes                                   # Enables privilege escalation, akin to 'sudo', necessary for making system changes.
 
-    - name: Install Docker
-      apt: name=docker.io state=latest
+  tasks:                                        # List of tasks to be performed on the hosts.
+    - name: Install and configure UFW           # First task: Install the UFW firewall software.
+      apt:                                      # Uses the 'apt' module, suitable for Debian/Ubuntu systems.
+        name: ufw                               # Specifies the package to install.
+        state: present                          # Ensures the package is installed.
 
-    - name: Run Nginx container
-      docker_container:
-        name: nginx
-        image: nginx:latest
-        state: started
-        ports:
-          - "80:80"
-          - "443:443"
+    - name: Allow SSH and HTTP/HTTPS through UFW  # Second task: Configure UFW to allow certain network ports.
+      ufw:                                      # Uses the 'ufw' module to manage firewall rules.
+        rule: allow                             # Sets the rule to allow traffic.
+        port: "{{ item }}"                      # Specifies the port to allow; variable from loop.
+      loop: [22, 80, 443]                       # Loops through ports 22 (SSH), 80 (HTTP), and 443 (HTTPS) to apply rules.
+
+    - name: Install Docker                      # Third task: Install Docker to run containerized applications.
+      apt:                                      # Again uses the 'apt' module.
+        name: docker.io                         # Specifies the Docker package.
+        state: latest                           # Ensures the latest version of the package is installed.
+
+    - name: Run Nginx container                 # Fourth task: Run an Nginx web server container.
+      docker_container:                         # Uses the 'docker_container' module to manage Docker containers.
+        name: nginx                             # Names the container 'nginx'.
+        image: nginx:latest                     # Specifies the Docker image to use, pulling the latest Nginx image.
+        state: started                          # Ensures the container is running.
+        ports:                                  # Maps ports from the host to the container.
+          - "80:80"                             # Maps port 80 on the host to port 80 on the container.
+          - "443:443"                           # Maps port 443 on the host to port 443 on the container.
