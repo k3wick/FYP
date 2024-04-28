@@ -1,15 +1,16 @@
 ---
-- name: Configure Network Settings on VMs
-  hosts: network_configurations
-  become: yes
-  tasks:
-    - name: Set hostname
-      hostname:
-        name: "{{ inventory_hostname }}"
+- name: Configure Network Settings on VMs  # This is the name of the playbook.
+  hosts: network_configurations            # Specifies the group of hosts (VMs) on which the tasks will be run.
+  become: yes                              # Escalates privileges (similar to 'sudo'), necessary for making system changes.
 
-    - name: Update /etc/hosts for hostname resolution
-      lineinfile:
-        path: /etc/hosts
-        line: "{{ hostvars[item].ansible_host }} {{ item }}"
-        state: present
-      loop: "{{ groups['all_vms'] }}"
+  tasks:                                   # A list of tasks to be executed on the hosts.
+    - name: Set hostname                   # First task: Set the hostname of the VM.
+      hostname:                            # Uses the 'hostname' module of Ansible.
+        name: "{{ inventory_hostname }}"   # Sets the hostname to the inventory name of the current VM.
+
+    - name: Update /etc/hosts for hostname resolution  # Second task: Updates the /etc/hosts file.
+      lineinfile:                           # Uses the 'lineinfile' module to ensure a specific line is present in a file.
+        path: /etc/hosts                    # The file to update.
+        line: "{{ hostvars[item].ansible_host }} {{ item }}"  # The line to be added/ensured in the file.
+        state: present                      # Ensures the line is present in the file.
+      loop: "{{ groups['all_vms'] }}"       # Loops over all VMs specified in the 'all_vms' group to update /etc/hosts.
