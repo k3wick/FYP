@@ -1,7 +1,7 @@
 ---
 - name: Configure Web Server and Firewall       # Name of the playbook.
   hosts: combined_web_firewall                  # Specifies the group of hosts the playbook targets.
-  become: yes                                   # Enables privilege escalation, akin to 'sudo', necessary for making system changes.
+  become: yes                                   # Enables privilege escalation, necessary for making system changes.
 
   tasks:                                        # List of tasks to be performed on the hosts.
     - name: Install and configure UFW           # First task: Install the UFW firewall software.

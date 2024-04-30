@@ -1,89 +1,90 @@
 ---
-- name: Install Zabbix Server and Ansible
-  hosts: combined_zabbix_ansible
-  become: yes
+- name: Install Zabbix with Nginx and PHP-FPM
+  hosts: your_host_group
+  become: true
   vars:
     db_name: zabbix
     db_user: zabbix
-    db_password: zabbix_pass
+    db_password: "your_zabbix_db_password"  # Change this to your actual Zabbix DB password
     php_timezone: "America/New_York"
+
   tasks:
-    - name: Install necessary packages for Zabbix
+    - name: Add Zabbix official repository
+      apt_repository:
+        repo: "deb http://repo.zabbix.com/zabbix/6.4/ubuntu/ {{ ansible_distribution_release }} main"
+        state: present
+
+    - name: Install Zabbix server, frontend, and agent packages
       apt:
-        name: "{{ item }}"
+        name:
+          - zabbix-server-mysql
+          - zabbix-frontend-php
+          - zabbix-nginx-conf
+          - zabbix-agent
         state: present
         update_cache: yes
-      loop:
-        - mariadb-server
-        - mariadb-client
-        - zabbix-server-mysql
-        - zabbix-frontend-php
-        - zabbix-apache-conf
-        - zabbix-agent
-        - git
-        - ansible
 
-- name: Ensure the MariaDB database is present
-  mysql_db:
-    name: "{{ db_name }}"
-    state: present
-
-- name: Ensure the MariaDB user is present with privileges
-  mysql_user:
-    name: "{{ db_user }}"
-    password: "{{ db_password }}"
-    priv: "{{ db_name }}.*:ALL"
-    state: present
-
-
-    - name: Create Zabbix database
-      mysql_db:
-        name: "{{ db_name }}"
+    - name: Install Nginx and PHP-FPM packages
+      apt:
+        pkg:
+          - nginx
+          - php8.1-fpm
+          - php8.1-mysql
+          - php8.1-mbstring
+          - php8.1-gd
+          - php8.1-xml
+          - php8.1-bcmath
+          - php8.1-json
+        update_cache: yes
         state: present
 
-    - name: Create Zabbix database user
-      mysql_user:
-        name: "{{ db_user }}"
-        password: "{{ db_password }}"
-        priv: "{{ db_name }}.*:ALL"
-        state: present
-
-
-    - name: Import initial schema and data
-      shell: |
-        zcat /usr/share/doc/zabbix-server-mysql*/create.sql.gz | mysql -u{{ db_user }} -p{{ db_password }} {{ db_name }}
-      args:
-        creates: /etc/zabbix/zabbix_server.conf
-
-    - name: Configure Zabbix server with database
-      lineinfile:
-        path: /etc/zabbix/zabbix_server.conf
-        regexp: "{{ item.regexp }}"
-        line: "{{ item.line }}"
+    - name: Configure PHP-FPM
+      ini_file:
+        path: "/etc/php/8.1/fpm/php.ini"
+        section: PHP
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
       with_items:
-        - { regexp: '^# DBHost=localhost', line: 'DBHost=localhost' }
-        - { regexp: '^# DBName=zabbix', line: 'DBName={{ db_name }}' }
-        - { regexp: '^# DBUser=zabbix', line: 'DBUser={{ db_user }}' }
-        - { regexp: '^# DBPassword=', line: 'DBPassword={{ db_password }}' }
+        - { option: 'date.timezone', value: '{{ php_timezone }}' }
+        - { option: 'max_execution_time', value: '300' }
+        - { option: 'memory_limit', value: '256M' }
+        - { option: 'post_max_size', value: '16M' }
+        - { option: 'upload_max_filesize', value: '2M' }
+      notify:
+        - restart php-fpm
 
-    - name: Ensure Zabbix server and agent are running
+    - name: Copy Zabbix Nginx server block configuration
+      copy:
+        src: zabbix_nginx.conf
+        dest: "/etc/nginx/sites-available/zabbix"
+        mode: 0644
+      notify:
+        - reload nginx
+
+    - name: Enable Zabbix Nginx configuration
+      file:
+        src: "/etc/nginx/sites-available/zabbix"
+        dest: "/etc/nginx/sites-enabled/zabbix"
+        state: link
+
+    - name: Ensure services are started and enabled
       service:
         name: "{{ item }}"
         state: started
         enabled: true
       loop:
+        - nginx
+        - php8.1-fpm
         - zabbix-server
         - zabbix-agent
 
-    - name: Configure PHP for Zabbix
-      lineinfile:
-        path: /etc/zabbix/apache.conf
-        regexp: "{{ item.regexp }}"
-        line: "{{ item.line }}"
-      with_items:
-        - { regexp: '^# php_value date.timezone Europe/Riga', line: 'php_value date.timezone {{ php_timezone }}' }
-
-    - name: Restart Apache to apply PHP configuration
+  handlers:
+    - name: reload nginx
       service:
-        name: apache2
+        name: nginx
+        state: reloaded
+
+    - name: restart php-fpm
+      service:
+        name: php8.1-fpm
         state: restarted
