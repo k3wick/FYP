@@ -5,7 +5,7 @@
   vars:
     db_name: zabbix
     db_user: zabbix
-    db_password: "your_zabbix_db_password"  # Change this to your actual Zabbix DB password
+    db_password: zabbix_pass  # Change this to your actual Zabbix DB password
     php_timezone: "America/New_York"
 
   tasks:
